@@ -50,17 +50,8 @@ import java.util.Random;
 public class RocksDBConnector {
     private static final Logger LOG = LoggerFactory.getLogger(RocksDBConnector.class);
     private  static  RocksDB db;
-    private static List<ColumnFamilyDescriptor> colFamily= new ArrayList<ColumnFamilyDescriptor>();
-    private static List<ColumnFamilyHandle> colFamilyHandles= new ArrayList<ColumnFamilyHandle>();
-    private final static String KEY = "testKey";
-    private final static byte[] KEY_BYTES = KEY.getBytes();
-    private final static byte[] BYTES_1 = util.longToByte(1L);
-    private final static byte[] BYTES_0 = util.longToByte(0L);
-    private static final Cache<String,String> guavaCachedIndex = CacheBuilder.newBuilder().build();
     private  RocksDBConnector(){}
     private final static RocksDBConnector instance = new RocksDBConnector();
-    private static AtomicLong simpleCounter = new AtomicLong();
-    private static AtomicLong batchCounter = new AtomicLong();
     public static void main(String[] args) {
         try {
             initializeRocksDb();
@@ -103,63 +94,11 @@ public class RocksDBConnector {
             options.setMergeOperatorName("uint64add");
             options.setMaxBackgroundFlushes(1);
             options.setWriteBufferSize(50L);
-            options.setArenaBlockSize(100);
             options.setBlobSize(256);
             options.setCreateMissingColumnFamilies(true);
             if (db == null) {
                 db = RocksDB.open( options, "/tmp/testdata");
             }
-        
-        db.put(KEY_BYTES,KEY_BYTES);
-        guavaCachedIndex.put(KEY,KEY);
     }
 
-    private static Long getCount(){
-        try {
-            return util.byteToLong(db.get(KEY_BYTES));
-        } catch (RocksDBException e) {
-            LOG.debug(e.getMessage());
-            return 0L;
-        }
-    }
-    private  static void resetCounter(){
-        try {
-            db.put(colFamilyHandles.get(0), KEY_BYTES, BYTES_0);
-            
-        } catch (RocksDBException e) {
-            //LOG.debug(e.getMessage());
-        }
-    }
-    private static String getFromRocks(){
-        String a ;
-        try {
-            a = new String(db.get(colFamilyHandles.get(1), KEY_BYTES));
-        } catch (RocksDBException e) {
-            a=null;
-        }
-        return a;
-    }
-    private static String getFromGuava(){
-        return guavaCachedIndex.getIfPresent(KEY);
-    }
-    private  static void mergeOperaton(){
-        try {
-            db.merge(colFamilyHandles.get(0), KEY_BYTES, BYTES_1);
-
-        } catch (RocksDBException e) {
-            LOG.debug(e.getMessage());
-        }
-    }
-
-    private static void mergeBatchOperation(){
-        WriteBatch batch = new WriteBatch();
-        WriteOptions write_option = new WriteOptions();
-        try {
-            batch.merge(colFamilyHandles.get(0), KEY_BYTES, BYTES_1);
-            db.write(write_option,batch);
-
-        }catch (Exception e){
-            LOG.debug(e.getMessage());
-        }
-    }
 }
