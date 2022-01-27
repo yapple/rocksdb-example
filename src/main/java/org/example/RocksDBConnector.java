@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 */
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RocksDBConnector {
     private static final Logger LOG = LoggerFactory.getLogger(RocksDBConnector.class);
     private  static  RocksDB db;
-    private static List<String> colFamily= new ArrayList<String>();
+    private static List<ColumnFamilyDescriptor> colFamily= new ArrayList<ColumnFamilyDescriptor>();
     private static List<ColumnFamilyHandle> colFamilyHandles= new ArrayList<ColumnFamilyHandle>();
     private final static String KEY = "testKey";
     private final static byte[] KEY_BYTES = KEY.getBytes();
@@ -93,22 +94,20 @@ public class RocksDBConnector {
         server.bind(SERVER_PORT);
         return server;
     }
-    private  static void initializeRocksDb() throws RocksDBException {
-            colFamily.add("default");
-            colFamily.add("testing2");
-            colFamily.add("testing1");
+    private  static void initializeRocksDb() throws RocksDBException,UnsupportedEncodingException{
             RocksDB.loadLibrary();
             Options options = new Options().setCreateIfMissing(true);
             options.setMergeOperatorName("uint64add");
             options.setMaxBackgroundFlushes(1);
             options.setWriteBufferSize(50L);
-            
+            options.setArenaBlockSize(100);
+            options.setBlobSize(1024);
             options.setCreateMissingColumnFamilies(true);
             if (db == null) {
-                db = RocksDB.open(options, "/opt/rocksdb/data/testdata", colFamily, colFamilyHandles);
+                db = RocksDB.open( options, "/data00/wangyi/data/testdata");
             }
         
-        db.put(colFamilyHandles.get(1),KEY_BYTES,KEY_BYTES);
+        db.put(KEY_BYTES,KEY_BYTES);
         guavaCachedIndex.put(KEY,KEY);
     }
 

@@ -13,10 +13,15 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
+    <!-- <dependency>
 	    <groupId>org.rocksdb</groupId>
 	    <artifactId>rocksdbjni</artifactId>
 	    <version>3.7.0</version>
+    </dependency> -->
+    <dependency>
+      <groupId>com.data-artisans</groupId>
+      <artifactId>frocksdbjni</artifactId>
+      <version>5.18.3-artisans-terark-0.31-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
