@@ -19,6 +19,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Random;
 
 /**
  * 
@@ -57,18 +58,13 @@ public class RocksDBConnector {
     private final static byte[] BYTES_0 = util.longToByte(0L);
     private static final Cache<String,String> guavaCachedIndex = CacheBuilder.newBuilder().build();
     private  RocksDBConnector(){}
-    private static final String SERVICE_NAME = "Admin Service";
-    private static final int DEFAULT_EXECUTOR_THREAD_POOL_SIZE = 2;
-    private static final int SERVER_PORT = 9009;
     private final static RocksDBConnector instance = new RocksDBConnector();
     private static AtomicLong simpleCounter = new AtomicLong();
     private static AtomicLong batchCounter = new AtomicLong();
     public static void main(String[] args) {
-        RestExpress server = null;
         try {
             initializeRocksDb();
-            server = initializeServer(args);
-            server.awaitShutdown();
+            db_load();
         } catch (IOException e) {
             System.out.print(e);
             LOG.info(e.getMessage());
@@ -77,23 +73,30 @@ public class RocksDBConnector {
             LOG.info(e.getMessage());
         }
     }
-        
-    private static RestExpress initializeServer(String[] args) throws IOException {
-        RestExpress server = new RestExpress()
-                .setName(SERVICE_NAME)
-                .setBaseUrl("http://localhost:" + SERVER_PORT)
-                .setExecutorThreadCount(DEFAULT_EXECUTOR_THREAD_POOL_SIZE);
-
-        server.uri("/increment",instance).action("incrementCounter", HttpMethod.GET).noSerialization();
-        server.uri("/incrementAtomic",instance).action("incrementAtomicLong", HttpMethod.GET).noSerialization();
-        server.uri("/simpleRead",instance).action("simpleReadRocksDb", HttpMethod.GET).noSerialization();
-        server.uri("/simpleReadGuava",instance).action("simpleReadGuava", HttpMethod.GET).noSerialization();
-        server.uri("/incrementAtomic",instance).action("incrementAtomicLong", HttpMethod.GET).noSerialization();
-        server.uri("/reset",instance).action("resetCounterValue", HttpMethod.GET).noSerialization();
-        server.uri("/get",instance).action("getCounterValue", HttpMethod.GET).noSerialization();
-        server.bind(SERVER_PORT);
-        return server;
+    public static String getRandomString(int length){
+        String str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random=new Random();
+        StringBuffer sb=new StringBuffer();
+        for(int i=0;i<length;i++){
+        int number=random.nextInt(62);
+        sb.append(str.charAt(number));
+        }
+        return sb.toString();
     }
+    private static void db_load()throws RocksDBException{
+
+        for(int i =0 ;i< 1000;i++){
+            String key = getRandomString(8);
+            String value = getRandomString(i);
+            for(int j = 0;j < 1000;j++){ 
+                db.put(key.getBytes(),value.getBytes());
+            }
+            System.out.println("finished load" + String.valueOf(i));
+        }
+        System.out.println("finished load");
+        db.compactRange();
+    }
+        
     private  static void initializeRocksDb() throws RocksDBException,UnsupportedEncodingException{
             RocksDB.loadLibrary();
             Options options = new Options().setCreateIfMissing(true);
@@ -101,10 +104,10 @@ public class RocksDBConnector {
             options.setMaxBackgroundFlushes(1);
             options.setWriteBufferSize(50L);
             options.setArenaBlockSize(100);
-            options.setBlobSize(1024);
+            options.setBlobSize(256);
             options.setCreateMissingColumnFamilies(true);
             if (db == null) {
-                db = RocksDB.open( options, "/data00/wangyi/data/testdata");
+                db = RocksDB.open( options, "/tmp/testdata");
             }
         
         db.put(KEY_BYTES,KEY_BYTES);
@@ -158,31 +161,5 @@ public class RocksDBConnector {
         }catch (Exception e){
             LOG.debug(e.getMessage());
         }
-    }
-    public  void incrementAtomicLong(Request request,Response response){
-        simpleCounter.incrementAndGet();
-    }
-    public  void simpleReadGuava(Request request,Response response){
-        response.setBody(getFromGuava());
-    }
-    public  void simpleReadRocksDb(Request request,Response response){
-        response.setBody(getFromRocks());
-    }
-    
-    
-    public void incrementCounter(Request request, Response response) {
-        mergeOperaton();
-    }
-    public void batchIncrementCounter(Request request, Response response) {
-        mergeBatchOperation();
-    }
-    
-    public void getCounterValue(Request request, Response response) {
-            response.setBody("Current RocksDB Count is "+getCount()+"\n"+"Current AtomicLong Count is "+simpleCounter.get());
-    }
-    public void resetCounterValue(Request request, Response response) {
-        simpleCounter.set(0L);
-        resetCounter();
-        response.setBody("Current RocksDB Count is "+getCount()+"\n"+"Current AtomicLong Count is "+simpleCounter.get());
     }
 }
