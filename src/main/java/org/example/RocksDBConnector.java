@@ -6,7 +6,7 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.restexpress.Request;
 import org.restexpress.Response;
 import org.restexpress.RestExpress;
-import org.rocksdb.*;
+import org.terarkdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /*
@@ -96,6 +96,11 @@ public class RocksDBConnector {
             options.setWriteBufferSize(50L);
             options.setBlobSize(256);
             options.setCreateMissingColumnFamilies(true);
+            CompactionOptionsFIFO fifo = new CompactionOptionsFIFO();
+						options.setCompactionOptionsFIFO(fifo);
+						options.setCompactionStyle(CompactionStyle.FIFO);
+						options.setStatsDumpPeriodSec(10);
+
             if (db == null) {
                 db = RocksDB.open( options, "/tmp/testdata");
             }
